@@ -3,7 +3,6 @@ package pod
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,11 +18,10 @@ type requestSpecificPodData struct {
 
 type responseAllPodData struct {
 	Name      string `json:"name"`
-	Status    string `json:"status"`
-	Cluster   string `json:"cluster"`
 	NameSpace string `json:"namespace"`
+	Status    string `json:"status"`
 	Age       string `json:"age"`
-	Restarts  string `json:"restarts"`
+	Restarts  int32  `json:"restarts"`
 }
 
 type responseSpecificPodData struct {
@@ -70,29 +68,21 @@ func GetAllPodStatus(ctx *gin.Context, clientSet *kubernetes.Clientset) {
 		panic(err.Error())
 	}
 
-	// AS-IS
-	// getPodDataJson, _ := json.Marshal(getPodData)
-	// ctx.JSON(http.StatusOK, string(getPodDataJson))
-
-	// TO-BE
-	// Name      string `json:"name"`
-	// Status    string `json:"status"`
-	// Cluster   string `json:"cluster"`
-	// NameSpace string `json:"namespace"`
-	// Age       string `json:"age"`
-	// Restarts  string `json:"restarts"`
-	fmt.Println(getPodData.Items[0].Name)
-	fmt.Println(getPodData.Items[0].Status.Conditions)
-	fmt.Println(getPodData.Items[0].Status.StartTime)
-	fmt.Println(getPodData.Items[0].Namespace)
-	// fmt.Println(getPodData.Items[0])
-	// fmt.Println(getPodData.Items[0])
-
-	customGetAllPodData := &responseAllPodData{
-		Name: getPodData.Continue,
+	var customGetAllPodDataList []responseAllPodData
+	for _, s := range getPodData.Items {
+		for _, j := range s.Status.ContainerStatuses {
+			customGetAllPodData := &responseAllPodData{
+				Name:      s.Name,
+				NameSpace: s.Namespace,
+				Status:    string(s.Status.Phase),
+				Age:       s.Status.StartTime.Format("2006-01-02 15:04:05"),
+				Restarts:  j.RestartCount,
+			}
+			customGetAllPodDataList = append(customGetAllPodDataList, *customGetAllPodData)
+		}
 	}
 
-	customGetPodDataJson, _ := json.Marshal(customGetAllPodData)
+	customGetPodDataJson, _ := json.Marshal(customGetAllPodDataList)
 	ctx.JSON(http.StatusOK, string(customGetPodDataJson))
 }
 
