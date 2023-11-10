@@ -1,10 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"context"
-	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,47 +10,7 @@ import (
 
 	k8s "github.com/younggwon1/service-monitoring/config/kubernetes"
 	pod "github.com/younggwon1/service-monitoring/pod"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
-
-func getSpecificPodLogs(c *gin.Context) {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	clientSet, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		panic(err.Error())
-	}
-	podLogOpts := corev1.PodLogOptions{}
-
-	nameSpace := c.DefaultQuery("nameSpace", "default")
-	podName := c.Query("podName")
-
-	req := clientSet.CoreV1().Pods(nameSpace).GetLogs(podName, &podLogOpts)
-
-	podLogs, err := req.Stream(context.TODO())
-	if err != nil {
-		panic(err.Error())
-	}
-
-	defer podLogs.Close()
-
-	buf := new(bytes.Buffer)
-	_, err = io.Copy(buf, podLogs)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	str := buf.String()
-
-	fmt.Println(str) // 확인 필요.
-
-}
 
 // Swagger API Declaration
 func setupSwagger(router *gin.Engine) {
@@ -83,9 +39,9 @@ func main() {
 	{
 		podRouter := v1.Group("/podData")
 		{
-			podRouter.GET("/pods", func(ctx *gin.Context) { pod.GetAllPodStatus(ctx, kubernetesConfig) })
-			podRouter.GET("/pod", func(ctx *gin.Context) { pod.GetSpecificPodStatus(ctx, kubernetesConfig) })
-			podRouter.GET("/podLogs", getSpecificPodLogs)
+			podRouter.GET("", func(ctx *gin.Context) { pod.GetAllPodsData(ctx, kubernetesConfig) })
+			podRouter.GET("/pod", func(ctx *gin.Context) { pod.GetSpecificPodData(ctx, kubernetesConfig) })
+			podRouter.GET("/podLogs", func(ctx *gin.Context) { pod.GetSpecificPodLogs(ctx, kubernetesConfig) })
 		}
 	}
 	router.Run(":8080")
