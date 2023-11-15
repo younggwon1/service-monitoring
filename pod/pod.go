@@ -1,7 +1,7 @@
 package pod
 
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -96,7 +96,7 @@ func GetSpecificPodData(ctx *gin.Context, clientSet *kubernetes.Clientset) {
 
 func GetSpecificPodLogs(ctx *gin.Context, clientSet *kubernetes.Clientset) {
 	var RequestSpecificPodLogsData request.RequestSpecificPodLogsData
-	podLogOpts := corev1.PodLogOptions{}
+	podLogOpts := corev1.PodLogOptions{Follow: true}
 
 	if err := ctx.ShouldBindQuery(&RequestSpecificPodLogsData); err == nil {
 		req := clientSet.CoreV1().Pods(RequestSpecificPodLogsData.NameSpace).GetLogs(RequestSpecificPodLogsData.Name, &podLogOpts)
@@ -107,15 +107,15 @@ func GetSpecificPodLogs(ctx *gin.Context, clientSet *kubernetes.Clientset) {
 
 		defer podLogs.Close()
 
-		buf := new(bytes.Buffer)
-		_, err = io.Copy(buf, podLogs)
-		if err != nil {
-			panic(err.Error())
+		buffer := bufio.NewReader(podLogs)
+		for {
+			val, readErr := buffer.ReadString('\n')
+			if readErr == io.EOF {
+				fmt.Println("EOF")
+				break
+			}
+			fmt.Println(val)
 		}
-
-		str := buf.String()
-
-		fmt.Println(str) // 확인 필요.
 	}
 }
 
