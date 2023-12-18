@@ -9,6 +9,7 @@ import (
 	"github.com/swaggo/swag/example/basic/docs"
 
 	k8s "github.com/younggwon1/service-monitoring/config/kubernetes"
+	metrics "github.com/younggwon1/service-monitoring/config/metrics"
 	pod "github.com/younggwon1/service-monitoring/pod"
 )
 
@@ -31,6 +32,7 @@ func setupSwagger(router *gin.Engine) {
 
 func main() {
 	kubernetesConfig := k8s.GetKubernetesCredentials() // Init kubernetes config
+	metricsConfig := metrics.GetMetricsCredentials()   // Init metrics config
 	router := gin.Default()                            // Init Router
 	setupSwagger(router)                               // Middleware Configuration
 	// c := controller.NewController()                 // Init Controller
@@ -42,6 +44,7 @@ func main() {
 			podRouter.GET("", func(ctx *gin.Context) { pod.GetAllPodsData(ctx, kubernetesConfig) })
 			podRouter.GET("/pod", func(ctx *gin.Context) { pod.GetSpecificPodData(ctx, kubernetesConfig) })
 			podRouter.GET("/podLogs", func(ctx *gin.Context) { pod.GetSpecificPodLogs(ctx, kubernetesConfig) })
+			podRouter.GET("/podMetrics", func(ctx *gin.Context) { pod.GetSpecificPodResourceUsage(ctx, metricsConfig) })
 		}
 	}
 	router.Run(":8080")

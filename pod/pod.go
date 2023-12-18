@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	metrics "k8s.io/metrics/pkg/client/clientset/versioned"
 
 	request "github.com/younggwon1/service-monitoring/pod/config/request"
 	response "github.com/younggwon1/service-monitoring/pod/config/response"
@@ -119,33 +121,31 @@ func GetSpecificPodLogs(ctx *gin.Context, clientSet *kubernetes.Clientset) {
 	}
 }
 
-// func GetSpecificPodResourceUsage(clientSet *kubernetes.Clientset) {
-// 	// Create a context with a cancel function to stop monitoring.
-// 	ctx, cancel := context.WithCancel(context.Background())
-// 	defer cancel()
+func GetSpecificPodResourceUsage(ctx *gin.Context, metrics *metrics.Clientset) {
+	var RequestSpecificPodData request.RequestSpecificPodData
+	// Use a time-based ticker to periodically fetch pod metrics.
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 
-// 	// Use a time-based ticker to periodically fetch pod metrics.
-// 	tick := wait.NewTimeTicker(time.Second)
-// 	defer tick.Stop()
-
-// 	for {
-// 		select {
-// 		case <-ctx.Done():
-// 			return
-// 		case <-tick.C:
-// 			// Fetch the pod metrics.
-// 			podMetrics, err := clientSet.
-// 			if err != nil {
-// 				fmt.Printf("Error fetching pod metrics: %v\n", err)
-// 				continue
-// 			}
-
-// 			// Extract CPU and memory usage.
-// 			for _, container := range podMetrics.Containers {
-// 				fmt.Printf("Container: %s\n", container.Name)
-// 				fmt.Printf("CPU Usage: %v\n", container.Usage[corev1.ResourceCPU])
-// 				fmt.Printf("Memory Usage: %v\n", container.Usage[corev1.ResourceMemory])
-// 			}
-// 		}
-// 	}
-// }
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			// Fetch the pod metrics.
+			if err := ctx.ShouldBindQuery(&RequestSpecificPodData); err == nil {
+				podMetrics, err := metrics.MetricsV1beta1().PodMetricses(RequestSpecificPodData.NameSpace).Get(context.TODO(), RequestSpecificPodData.Name, metav1.GetOptions{})
+				if err != nil {
+					fmt.Printf("Error fetching pod metrics: %v\n", err)
+					continue
+				}
+				// Extract CPU and memory usage.
+				for _, container := range podMetrics.Containers {
+					fmt.Printf("Container: %s\n", container.Name)
+					fmt.Printf("CPU Usage: %vm\n", podMetrics.Containers[0].Usage.Cpu().MilliValue())
+					fmt.Printf("Memory Usage: %vm\n", podMetrics.Containers[0].Usage.Memory().MilliValue())
+				}
+			}
+		}
+	}
+}
