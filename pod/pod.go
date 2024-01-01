@@ -19,7 +19,7 @@ import (
 	response "github.com/younggwon1/service-monitoring/pod/config/response"
 )
 
-func GetAllPodsData(ctx *gin.Context, clientSet *kubernetes.Clientset) {
+func AllPods(ctx *gin.Context, clientSet *kubernetes.Clientset) {
 	getAllPodsData, err := clientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -47,7 +47,7 @@ func GetAllPodsData(ctx *gin.Context, clientSet *kubernetes.Clientset) {
 	ctx.JSON(http.StatusOK, string(customGetPodsDataJson))
 }
 
-func GetSpecificPodData(ctx *gin.Context, clientSet *kubernetes.Clientset) {
+func SpecificPod(ctx *gin.Context, clientSet *kubernetes.Clientset) {
 	var RequestSpecificPodData request.RequestSpecificPodData
 
 	if err := ctx.ShouldBindQuery(&RequestSpecificPodData); err == nil {
@@ -96,7 +96,7 @@ func GetSpecificPodData(ctx *gin.Context, clientSet *kubernetes.Clientset) {
 	}
 }
 
-func GetSpecificPodLogs(ctx *gin.Context, clientSet *kubernetes.Clientset) {
+func SpecificPodLogs(ctx *gin.Context, clientSet *kubernetes.Clientset) {
 	var RequestSpecificPodLogsData request.RequestSpecificPodLogsData
 	podLogOpts := corev1.PodLogOptions{Follow: true}
 
@@ -121,7 +121,7 @@ func GetSpecificPodLogs(ctx *gin.Context, clientSet *kubernetes.Clientset) {
 	}
 }
 
-func GetSpecificPodResourceUsage(ctx *gin.Context, metrics *metrics.Clientset) {
+func LiveStreamSpecificPodResourceUsage(ctx *gin.Context, metrics *metrics.Clientset) {
 	var RequestSpecificPodData request.RequestSpecificPodData
 	// Use a time-based ticker to periodically fetch pod metrics.
 	ticker := time.NewTicker(1 * time.Second)

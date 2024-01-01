@@ -10,6 +10,7 @@ import (
 
 	k8s "github.com/younggwon1/service-monitoring/config/kubernetes"
 	metrics "github.com/younggwon1/service-monitoring/config/metrics"
+	deployment "github.com/younggwon1/service-monitoring/deployment"
 	pod "github.com/younggwon1/service-monitoring/pod"
 )
 
@@ -41,11 +42,18 @@ func main() {
 	{
 		podRouter := v1.Group("/podData")
 		{
-			podRouter.GET("", func(ctx *gin.Context) { pod.GetAllPodsData(ctx, kubernetesConfig) })
-			podRouter.GET("/pod", func(ctx *gin.Context) { pod.GetSpecificPodData(ctx, kubernetesConfig) })
-			podRouter.GET("/podLogs", func(ctx *gin.Context) { pod.GetSpecificPodLogs(ctx, kubernetesConfig) })
-			podRouter.GET("/podMetrics", func(ctx *gin.Context) { pod.GetSpecificPodResourceUsage(ctx, metricsConfig) })
+			podRouter.GET("", func(ctx *gin.Context) { pod.AllPods(ctx, kubernetesConfig) })
+			podRouter.GET("/pod", func(ctx *gin.Context) { pod.SpecificPod(ctx, kubernetesConfig) })
+			podRouter.GET("/podLogs", func(ctx *gin.Context) { pod.SpecificPodLogs(ctx, kubernetesConfig) })
+			podRouter.GET("/podMetrics", func(ctx *gin.Context) { pod.LiveStreamSpecificPodResourceUsage(ctx, metricsConfig) })
 		}
+
+		deploymentRouter := v1.Group("/deploymentData")
+		{
+			deploymentRouter.GET("", func(ctx *gin.Context) { deployment.ErrorDeployments(ctx, kubernetesConfig) })
+			deploymentRouter.DELETE("/delete/deployment", func(ctx *gin.Context) { deployment.DeleteErrorDeployments(ctx, kubernetesConfig) })
+		}
+
 	}
 	router.Run(":8080")
 }
