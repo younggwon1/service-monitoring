@@ -50,8 +50,7 @@ func main() {
 
 		deploymentRouter := v1.Group("/deploymentData")
 		{
-			deploymentRouter.GET("", func(ctx *gin.Context) { deployment.ErrorDeployments(ctx, kubernetesConfig) })
-			deploymentRouter.DELETE("/delete/deployment", func(ctx *gin.Context) { deployment.DeleteErrorDeployments(ctx, kubernetesConfig) })
+			deploymentRouter.GET("", func(ctx *gin.Context) { deployment.AllDeployments(ctx, kubernetesConfig) })
 		}
 
 	}

@@ -3,7 +3,6 @@ package deployment
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,36 +13,32 @@ import (
 	response "github.com/younggwon1/service-monitoring/deployment/config/response"
 )
 
-func ErrorDeployments(ctx *gin.Context, clientSet *kubernetes.Clientset) {
+func AllDeployments(ctx *gin.Context, clientSet *kubernetes.Clientset) {
 	deployments, err := clientSet.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	var errorDeploymentsList []response.ResponseErrorDeployments
+	var deploymentsList []response.ResponseAllDeployments
 	for _, deployment := range deployments.Items {
-		// Check the deployment error status
-		if deployment.Status.Replicas != deployment.Status.AvailableReplicas {
-			errorDeployment := &response.ResponseErrorDeployments{
-				Name:      deployment.Name,
-				NameSpace: deployment.Namespace,
-				Reason:    string(deployment.Status.Conditions[1].Reason),
-				Message:   deployment.Status.Conditions[1].Message,
-				Age:       deployment.ObjectMeta.GetCreationTimestamp().Format("2006-01-02 15:04:05"),
-			}
-			errorDeploymentsList = append(errorDeploymentsList, *errorDeployment)
+		deploymentsInfo := &response.ResponseAllDeployments{
+			Name:        deployment.Name,
+			NameSpace:   deployment.Namespace,
+			Age:         deployment.ObjectMeta.GetCreationTimestamp().Format("2006-01-02 15:04:05"),
+			Current:     deployment.Status.Replicas,
+			Desired:     deployment.Status.ReadyReplicas,
+			UptoDate:    deployment.Status.UpdatedReplicas,
+			Available:   deployment.Status.AvailableReplicas,
+			UnAvailable: deployment.Status.UnavailableReplicas,
 		}
+		deploymentsList = append(deploymentsList, *deploymentsInfo)
 	}
 
-	if len(errorDeploymentsList) != 0 {
-		errorDeploymentsJson, _ := json.Marshal(errorDeploymentsList)
-		ctx.JSON(http.StatusOK, string(errorDeploymentsJson))
+	if len(deploymentsList) != 0 {
+		deploymentsListJson, _ := json.Marshal(deploymentsList)
+		ctx.JSON(http.StatusOK, string(deploymentsListJson))
 	} else {
-		ctx.JSON(http.StatusNotFound, gin.H{"Message": "There is no deployment status as error."})
+		ctx.JSON(http.StatusNotFound, gin.H{"Message": "There is no deployment."})
 	}
-}
-
-func DeleteErrorDeployments(ctx *gin.Context, clientSet *kubernetes.Clientset) {
-	fmt.Println("Delete Error Deployments")
 }
